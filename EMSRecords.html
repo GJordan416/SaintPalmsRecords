@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Saint Palms Fire & EMS — Certification Registry</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  <style>
+    :root{--bg:#0f172a;--card:#111827;--muted:#94a3b8}
+    [data-theme='light']{--bg:#f8fafc;--card:#ffffff;--muted:#64748b}
+    body{background:var(--bg);color:var(--muted);font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}
+    .card{background:var(--card);color:inherit;border-radius:12px;padding:16px}
+    .no-print{display:inline}
+    @media print{.no-print{display:none!important}}  
+  </style>
+</head>
+<body data-theme="light" class="p-6">
+  <div class="max-w-6xl mx-auto">
+    <header class="flex items-center justify-between mb-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-800">Saint Palms Fire & EMS/Rescue</h1>
+        <div class="text-sm text-slate-600">ACLS • PALS • EMS Certifications Registry (Client-side)</div>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="themeBtn" class="px-3 py-2 card no-print">Toggle Dark</button>
+        <button id="pdfAll" class="px-3 py-2 card no-print">Export All (PDF)</button>
+        <button id="pdfSelected" class="px-3 py-2 card no-print">Export Selected (PDF)</button>
+      </div>
+    </header>
+
+    <main class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- left: form -->
+      <section class="card">
+        <h2 class="font-semibold mb-2">Add / Edit Record</h2>
+        <div class="space-y-2">
+          <input id="roblox" placeholder="Roblox Username" class="w-full border p-2 rounded" />
+          <div class="grid grid-cols-2 gap-2">
+            <input id="fname" placeholder="First Name" class="border p-2 rounded" />
+            <input id="lname" placeholder="Last Name" class="border p-2 rounded" />
+          </div>
+          <input id="dob" type="date" class="w-full border p-2 rounded" />
+          <input id="licnum" placeholder="Licensure #" class="w-full border p-2 rounded" />
+
+          <label class="block">Certifications (multi)</label>
+          <div class="grid grid-cols-2 gap-1 text-sm">
+            <label><input type="checkbox" class="cert" value="ACLS" /> ACLS</label>
+            <label><input type="checkbox" class="cert" value="PALS" /> PALS</label>
+            <label><input type="checkbox" class="cert" value="BLS" /> BLS</label>
+            <label><input type="checkbox" class="cert" value="EMT" /> EMT</label>
+            <label><input type="checkbox" class="cert" value="AEMT" /> AEMT</label>
+            <label><input type="checkbox" class="cert" value="Paramedic" /> Paramedic</label>
+            <label><input type="checkbox" class="cert" value="EVOC" /> EVOC</label>
+            <label><input type="checkbox" class="cert" value="HazMat" /> HazMat</label>
+            <label><input type="checkbox" class="cert" value="Fire I" /> Fire I</label>
+            <label><input type="checkbox" class="cert" value="Fire II" /> Fire II</label>
+            <label><input type="checkbox" class="cert" value="CPR Instructor" /> CPR Instructor</label>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <input id="issued" type="date" class="border p-2 rounded" />
+            <input id="expiry" type="date" class="border p-2 rounded" />
+          </div>
+
+          <label class="block">Photo (optional)</label>
+          <input id="photoFile" type="file" accept="image/*" class="w-full" />
+          <img id="photoPreview" src="" alt="preview" class="w-24 h-24 object-cover rounded border mt-2 hidden" />
+
+          <textarea id="notes" placeholder="Notes" class="w-full border p-2 rounded"></textarea>
+
+          <div class="flex gap-2">
+            <button id="saveBtn" class="px-4 py-2 bg-sky-600 text-white rounded">Save</button>
+            <button id="clearForm" class="px-4 py-2 border rounded">Clear</button>
+            <button id="genCode" class="ml-auto px-3 py-2 border rounded">Gen ID</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- middle: controls & filters -->
+      <section class="card md:col-span-2">
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex gap-2">
+            <input id="search" placeholder="Search Roblox, name, license, cert..." class="border p-2 rounded w-80" />
+            <select id="filterCert" class="border p-2 rounded">
+              <option value="">-- Filter cert --</option>
+              <option>ACLS</option><option>PALS</option><option>BLS</option><option>EMT</option><option>AEMT</option><option>Paramedic</option>
+              <option>EVOC</option><option>HazMat</option><option>Fire I</option><option>Fire II</option><option>CPR Instructor</option>
+            </select>
+          </div>
+
+          <div class="flex gap-2">
+            <button id="importBtn" class="px-3 py-2 border rounded no-print">Import CSV</button>
+            <button id="exportBtn" class="px-3 py-2 border rounded no-print">Export CSV</button>
+            <button id="idCardBtn" class="px-3 py-2 border rounded no-print">Generate ID Card (Selected)</button>
+          </div>
+        </div>
+
+        <div id="alerts" class="mb-2"></div>
+        <div id="tableWrap" class="overflow-x-auto"></div>
+      </section>
+    </main>
+
+    <footer class="text-xs text-slate-500 mt-4">Client-side only — data stored in your browser. To share centrally, export CSV and share the file.</footer>
+  </div>
+
+  <script>
+    // Utilities
+    const STORAGE = 'sp_registry_v2';
+    const THEME_KEY = 'sp_theme';
+    const { jsPDF } = window.jspdf || {};
+
+    function load() { try { return JSON.parse(localStorage.getItem(STORAGE) || '[]'); } catch(e){return [];} }
+    function save(d){ localStorage.setItem(STORAGE, JSON.stringify(d)); }
+
+    // Theme
+    const themeBtn = document.getElementById('themeBtn');
+    function applyTheme(t){ document.body.setAttribute('data-theme', t); localStorage.setItem(THEME_KEY,t); themeBtn.textContent = t==='dark' ? 'Toggle Light' : 'Toggle Dark'; }
+    themeBtn.addEventListener('click', ()=> applyTheme(document.body.getAttribute('data-theme')==='dark'?'light':'dark'));
+    (function(){ const t=localStorage.getItem(THEME_KEY)||'light'; applyTheme(t); })();
+
+    // Photo preview -> base64
+    const photoFile = document.getElementById('photoFile');
+    const photoPreview = document.getElementById('photoPreview');
+    let currentPhotoB64 = '';
+    photoFile.addEventListener('change', e=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      const r = new FileReader();
+      r.onload = ev=>{ currentPhotoB64 = ev.target.result; photoPreview.src = currentPhotoB64; photoPreview.classList.remove('hidden'); };
+      r.readAsDataURL(f);
+    });
+
+    // keep edit index global
+    window.editIndex = null;
+
+    // Save record
+    document.getElementById('saveBtn').addEventListener('click', ()=>{
+      const rec = {
+        roblox: (document.getElementById('roblox').value||'').trim(),
+        fname: (document.getElementById('fname').value||'').trim(),
+        lname: (document.getElementById('lname').value||'').trim(),
+        dob: document.getElementById('dob').value || '',
+        licnum: (document.getElementById('licnum').value||'').trim(),
+        certs: Array.from(document.querySelectorAll('.cert:checked')).map(c=>c.value),
+        issued: document.getElementById('issued').value||'',
+        expiry: document.getElementById('expiry').value||'',
+        notes: document.getElementById('notes').value||'',
+        photo: currentPhotoB64 || ''
+      };
+      if(!rec.roblox && !rec.fname && !rec.lname && !rec.licnum){ alert('Provide at least Roblox or a name or license'); return; }
+      const list = load();
+      // if editing index stored
+      if(window.editIndex != null){ list[window.editIndex] = rec; window.editIndex = null; }
+      else list.push(rec);
+      save(list); clearForm(); renderTable();
+    });
+
+    document.getElementById('clearForm').addEventListener('click', clearForm);
+    function clearForm(){ ['roblox','fname','lname','dob','licnum','issued','expiry','notes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; }); document.querySelectorAll('.cert').forEach(c=>c.checked=false); photoPreview.classList.add('hidden'); photoPreview.src=''; currentPhotoB64=''; window.editIndex = null; }
+
+    // Generate code
+    document.getElementById('genCode').addEventListener('click', ()=>{ const code = 'SP-'+Math.random().toString(36).slice(2,9).toUpperCase(); const notesEl = document.getElementById('notes'); notesEl.value += (notesEl.value ? '\n' : '') + 'Internal ID: ' + code; alert('Generated ID: '+code); });
+
+    // Table
+    const searchEl = document.getElementById('search'); if(searchEl) searchEl.addEventListener('input', renderTable);
+    const filterEl = document.getElementById('filterCert'); if(filterEl) filterEl.addEventListener('change', renderTable);
+
+    function renderTable(){
+      const list = load();
+      const s = (document.getElementById('search').value||'').toLowerCase();
+      const f = document.getElementById('filterCert').value;
+      const now = new Date();
+      let alertsHtml = '';
+      let rows = '';
+      list.forEach((r,i)=>{
+        // expiry check
+        let expClass = '';
+        if(r.expiry){ const ed = new Date(r.expiry); const days = (ed - now)/(1000*60*60*24); if(days < 0) expClass = 'text-red-600'; else if(days < 30) expClass = 'text-yellow-600'; }
+        const combined = (r.roblox+' '+r.fname+' '+r.lname+' '+r.licnum+' '+ (r.certs||[]).join(' ')).toLowerCase();
+        if(s && !combined.includes(s)) return;
+        if(f && !(r.certs||[]).includes(f)) return;
+        rows += `<tr class='align-top border-b'>\n          <td class='p-2'><input type=checkbox class='sel' data-idx='${i}' /></td>\n          <td class='p-2'>${escapeHtml(r.roblox||'')}</td>\n          <td class='p-2'>${escapeHtml(r.fname||'')} ${escapeHtml(r.lname||'')}</td>\n          <td class='p-2'>${escapeHtml(r.dob||'')}</td>\n          <td class='p-2'>${escapeHtml(r.licnum||'')}</td>\n          <td class='p-2'>${escapeHtml((r.certs||[]).join(', '))}</td>\n          <td class='p-2 ${expClass}'>${escapeHtml(r.expiry||'')}</td>\n          <td class='p-2'><button class='editBtn text-blue-600' data-i='${i}'>Edit</button> <button class='delBtn text-red-600' data-i='${i}'>Del</button></td>\n        </tr>`;
+      });
+
+      // alerts
+      const expiring = list.filter(r=>r.expiry && (new Date(r.expiry) - now)/(1000*60*60*24) < 30 && (new Date(r.expiry) - now)/(1000*60*60*24) >=0 ).length;
+      const expired = list.filter(r=>r.expiry && (new Date(r.expiry) - now) < 0 ).length;
+      if(expiring) alertsHtml += `<div class='p-2 mb-2 text-yellow-700 rounded bg-yellow-50'>${expiring} cert(s) expiring within 30 days</div>`;
+      if(expired) alertsHtml += `<div class='p-2 mb-2 text-red-700 rounded bg-red-50'>${expired} cert(s) expired</div>`;
+
+      const table = `<table class='w-full'><thead><tr class='bg-slate-100'><th class='p-2'>Sel</th><th class='p-2'>Roblox</th><th class='p-2'>Name</th><th class='p-2'>DOB</th><th class='p-2'>License</th><th class='p-2'>Certs</th><th class='p-2'>Expiry</th><th class='p-2 no-print'>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+      document.getElementById('alerts').innerHTML = alertsHtml;
+      document.getElementById('tableWrap').innerHTML = table;
+
+      // attach events
+      document.querySelectorAll('.editBtn').forEach(b=> b.addEventListener('click', e=>{ const i = parseInt(b.dataset.i,10); editRecord(i); }));
+      document.querySelectorAll('.delBtn').forEach(b=> b.addEventListener('click', e=>{ const i = parseInt(b.dataset.i,10); if(confirm('Delete?')){ const arr = load(); arr.splice(i,1); save(arr); renderTable(); } }));
+    }
+
+    function escapeHtml(unsafe){ return String(unsafe).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+
+    function editRecord(i){ const r = load()[i]; if(!r) return; window.editIndex = i; document.getElementById('roblox').value=r.roblox||''; document.getElementById('fname').value=r.fname||''; document.getElementById('lname').value=r.lname||''; document.getElementById('dob').value=r.dob||''; document.getElementById('licnum').value=r.licnum||''; document.getElementById('issued').value=r.issued||''; document.getElementById('expiry').value=r.expiry||''; document.getElementById('notes').value=r.notes||''; document.querySelectorAll('.cert').forEach(c=> c.checked = (r.certs||[]).includes(c.value)); if(r.photo){ currentPhotoB64=r.photo; photoPreview.src=r.photo; photoPreview.classList.remove('hidden'); } window.scrollTo({top:0,behavior:'smooth'}); }
+
+    // CSV Export/Import
+    document.getElementById('exportBtn').addEventListener('click', ()=>{
+      const arr = load(); const header=['Roblox','First','Last','DOB','Lic','Certs','Issued','Expiry','Notes','Photo']; let csv = header.join(',') + '\n';
+      arr.forEach(r=>{
+        csv += '"' + (r.roblox||'').replace(/"/g,'""') + '","' + (r.fname||'').replace(/"/g,'""') + '","' + (r.lname||'').replace(/"/g,'""') + '","' + (r.dob||'') + '","' + (r.licnum||'').replace(/"/g,'""') + '","' + (r.certs||[]).join(';') + '","' + (r.issued||'') + '","' + (r.expiry||'') + '","' + (r.notes||'').replace(/"/g,'""') + '","' + (r.photo||'') + '"\n';
+      });
+      const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='saintpalms_records.csv'; a.click();
+    });
+
+    document.getElementById('importBtn').addEventListener('click', ()=>{
+      const inp=document.createElement('input'); inp.type='file'; inp.accept='.csv';
+      inp.onchange=()=>{
+        const f=inp.files[0]; if(!f) return; const r=new FileReader();
+        r.onload=e=>{
+          const content = e.target.result || '';
+          const lines = content.split(/\r?\n/).filter(Boolean);
+          lines.shift();
+          const arr = [];
+          lines.forEach(l=>{
+            // naive parse for the CSV format produced by exportBtn
+            const parts = l.split('","');
+            // fix first and last
+            if(parts.length){ parts[0] = parts[0].replace(/^"/, ''); parts[parts.length-1] = parts[parts.length-1].replace(/"$/, ''); }
+            arr.push({
+              roblox: trimQuotes(parts[0]), fname: trimQuotes(parts[1]), lname: trimQuotes(parts[2]), dob: trimQuotes(parts[3]), licnum: trimQuotes(parts[4]), certs: trimQuotes(parts[5])? trimQuotes(parts[5]).split(';'):[], issued: trimQuotes(parts[6]), expiry: trimQuotes(parts[7]), notes: trimQuotes(parts[8]), photo: trimQuotes(parts[9])
+            });
+          });
+          save(arr); renderTable();
+        };
+        r.readAsText(f);
+      };
+      inp.click();
+    });
+    function trimQuotes(s){ return (s||'').replace(/^"|"$/g,'').trim(); }
+
+    // PDF Export - single selected or all
+    document.getElementById('pdfAll').addEventListener('click', async ()=>{
+      const all = load(); if(!all.length){ alert('No records'); return; }
+      if(typeof jsPDF === 'undefined'){ alert('jsPDF library not loaded'); return; }
+      const doc = new jsPDF();
+      for(let i=0;i<all.length;i++){ await addRecordToPdf(doc, all[i]); if(i<all.length-1) doc.addPage(); }
+      doc.save('saintpalms_all.pdf');
+    });
+
+    document.getElementById('pdfSelected').addEventListener('click', async ()=>{
+      const sels = Array.from(document.querySelectorAll('.sel:checked')).map(cb=>parseInt(cb.dataset.idx,10)); if(!sels.length){ alert('Select rows first'); return; }
+      if(typeof jsPDF === 'undefined'){ alert('jsPDF library not loaded'); return; }
+      const arr = load(); const doc = new jsPDF();
+      for(let i=0;i<sels.length;i++){ await addRecordToPdf(doc, arr[sels[i]]); if(i<sels.length-1) doc.addPage(); }
+      doc.save('saintpalms_selected.pdf');
+    });
+
+    async function addRecordToPdf(doc, rec){ // draw a simple card
+      const x=10,y=10; doc.setFontSize(16); doc.text((rec.fname||'') + ' ' + (rec.lname||''), x, y+6); doc.setFontSize(10); doc.text('Roblox: ' + (rec.roblox || ''), x, y+14); doc.text('License: ' + (rec.licnum || ''), x, y+20); doc.text('Certs: ' + ((rec.certs||[]).join(', ')), x, y+26); doc.text('Issue: ' + (rec.issued || ''), x, y+32); doc.text('Expiry: ' + (rec.expiry || ''), x, y+38); doc.text('Notes: ' + (rec.notes||''), x, y+46, {maxWidth:190});
+      if(rec.photo){ try{ const imgProps = doc.getImageProperties(rec.photo); const w=40; const h = (imgProps.height / imgProps.width)*w; doc.addImage(rec.photo,'JPEG',160,10,w,h); }catch(e){ console.warn('Could not add image to PDF', e); } }
+      // QR code
+      try{
+        const qr = new QRious({value: rec.licnum|| ((rec.fname||'')+(rec.lname||'')), size:128});
+        const qrData = qr.toDataURL(); doc.addImage(qrData,'PNG',160,60,30,30);
+      }catch(e){ console.warn('QR create failed', e); }
+    }
+
+    // ID Card generator (selected)
+    document.getElementById('idCardBtn').addEventListener('click', async ()=>{
+      const sels = Array.from(document.querySelectorAll('.sel:checked')).map(cb=>parseInt(cb.dataset.idx,10)); if(!sels.length){ alert('Select 1 row'); return; }
+      const rec = load()[sels[0]]; const el = document.createElement('div'); el.style.width='400px'; el.style.padding='10px'; el.style.background='#fff'; el.innerHTML = '<div style="display:flex;align-items:center;gap:10px"> <div><img src="' + (rec.photo||'') + '" style="width:100px;height:100px;object-fit:cover;border-radius:8px" /></div><div><h3 style="margin:0">' + escapeHtml(rec.fname) + ' ' + escapeHtml(rec.lname) + '</h3><div>Roblox: ' + escapeHtml(rec.roblox) + '</div><div>License: ' + escapeHtml(rec.licnum) + '</div><div>Expiry: ' + escapeHtml(rec.expiry) + '</div></div></div>';
+      document.body.appendChild(el);
+      await html2canvas(el).then(canvas=>{ const img=canvas.toDataURL('image/png'); if(typeof jsPDF === 'undefined'){ alert('jsPDF not loaded'); el.remove(); return;} const pdf=new jsPDF({orientation:'landscape'}); pdf.addImage(img,'PNG',10,10,190,100); pdf.save((rec.fname||'') + '_' + (rec.lname||'') + '_ID.pdf'); el.remove(); });
+    });
+
+    // Generate ID card PDF for selected rows (button double-click handler)
+    document.getElementById('idCardBtn').addEventListener('dblclick', async ()=>{
+      const sels = Array.from(document.querySelectorAll('.sel:checked')).map(cb=>parseInt(cb.dataset.idx,10)); if(!sels.length){ alert('Select rows first'); return; }
+      const arr = load(); if(typeof jsPDF === 'undefined'){ alert('jsPDF not loaded'); return; }
+      const doc = new jsPDF({unit:'mm',format:[85.6,53]}); // credit-card size
+      for(let i=0;i<sels.length;i++){
+        const r = arr[sels[i]];
+        const el = document.createElement('div'); el.style.width='340px'; el.style.height='200px'; el.style.padding='8px'; el.style.background='#fff'; el.innerHTML = '<div style="display:flex;gap:8px;font-size:12px"><img src="' + (r.photo||'') + '" style="width:80px;height:80px;object-fit:cover;border-radius:6px" /><div><strong>' + escapeHtml(r.fname) + ' ' + escapeHtml(r.lname) + '</strong><div>' + escapeHtml((r.certs||[]).join(', ')) + '</div><div>Lic: ' + escapeHtml(r.licnum) + '</div><div>Exp: ' + escapeHtml(r.expiry) + '</div></div></div>';
+        document.body.appendChild(el);
+        // eslint-disable-next-line no-await-in-loop
+        await html2canvas(el).then(canvas=>{ const img=canvas.toDataURL('image/png'); if(i>0) doc.addPage(); doc.addImage(img,'PNG',0,0,85.6,53); el.remove(); });
+      }
+      doc.save('id_cards_batch.pdf');
+    });
+
+    // helper to get selected rows data
+    function getSelected(){ return Array.from(document.querySelectorAll('.sel:checked')).map(cb=>load()[parseInt(cb.dataset.idx,10)]).filter(Boolean); }
+
+    // initial render
+    renderTable();
+  </script>
+</body>
+</html>
