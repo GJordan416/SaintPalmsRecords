@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Saint Palms Fire & EMS – Employee Portal</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#e6f0ff; margin:0; padding:20px; }
+  h1 { text-align:center; color:#003d99; }
+  .container { max-width:900px; margin:auto; }
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(250px,1fr)); gap:20px; margin-top:30px; }
+  .card { background:white; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.15); text-align:center; }
+  .card a { text-decoration:none; font-weight:bold; color:#003d99; font-size:18px; }
+  .card:hover { background:#d9e7ff; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { border:1px solid #99b8ff; padding:6px; }
+  th { background:#c7daff; color:#002b80; }
+</style>
+</head>
+<body>
+<h1>Saint Palms Fire & EMS – Employee Portal</h1>
+<div class="container">
+  <p style="text-align:center; font-size:18px;">Select a section below to access department systems and documents.</p>
+
+  <div class="card-grid">
+    <div class="card"><a href="EMSRecords.html">EMS Certification Records</a></div>
+    <div class="card"><a href="PCR.html">PCR / EMS EHR System</a></div>
+    <div class="card"><a href="apparatuschecklist.html">Apparatus Checklists</a></div>
+    <div class="card"><a href="README.md">Documentation / ReadMe</a></div>
+  </div>
+</div>
+<section style="max-width:900px;margin:40px auto;">
+<h2 style="color:#003d99;">Department Announcements</h2>
+<div style="background:white;padding:15px;border-radius:8px;box-shadow:0 0 8px rgba(0,0,0,0.15);">
+<p><em>No announcements posted.</em></p>
+</div>
+
+<h2 style="color:#003d99;margin-top:30px;">Call Volume Dashboard</h2>
+<div style="background:white;padding:15px;border-radius:8px;box-shadow:0 0 8px rgba(0,0,0,0.15);">
+<p><em>Dashboard placeholder – connect data when ready.</em></p>
+</div>
+
+<h2 style="color:#003d99;margin-top:30px;">Shift Schedule Viewer</h2>
+<div style="background:white;padding:15px;border-radius:8px;box-shadow:0 0 8px rgba(0,0,0,0.15);">
+<p><em>Shift schedule not uploaded.</em></p>
+</div>
+
+<h2 style="color:#003d99;margin-top:30px;">Standard Operating Guidelines</h2>
+<div style="background:white;padding:15px;border-radius:8px;box-shadow:0 0 8px rgba(0,0,0,0.15);">
+<ul>
+<li><a href="#" style="color:#003d99;">SOG: Fireground Operations</a></li>
+<li><a href="#" style="color:#003d99;">SOG: EMS Protocols</a></li>
+<li><a href="#" style="color:#003d99;">SOP: Apparatus Response Rules</a></li>
+</ul>
+</div>
+</section>
+
+<!-- Notification Banner -->
+<div style="background:#005ce6;color:white;padding:12px;text-align:center;font-weight:bold; margin-top:20px; border-radius:6px;">
+🚨 No active alerts. All systems normal.
+</div>
+
+<!-- Expandable SOG/SOP Sections -->
+<section style="max-width:900px;margin:40px auto;">
+<h2 style="color:#003d99;">SOG / SOP Library</h2>
+<div style="background:white;padding:20px;border-radius:8px;box-shadow:0 0 8px rgba(0,0,0,0.15);">
+<details>
+  <summary style="cursor:pointer;font-weight:bold;color:#003d99;">Fireground Operations</summary>
+  <p style="margin-top:10px;">Guidelines for suppression, safety, and communication on fire scenes.</p>
+</details>
+<details>
+  <summary style="cursor:pointer;font-weight:bold;color:#003d99;">EMS Protocols</summary>
+  <p style="margin-top:10px;">Standardized medical procedures for BLS/ALS operations.</p>
+</details>
+<details>
+  <summary style="cursor:pointer;font-weight:bold;color:#003d99;">Apparatus Response Rules</summary>
+  <p style="margin-top:10px;">Driving policy, response modes, and officer responsibilities.</p>
+</details>
+</div>
+</section>
+
+<!-- Shift Schedule CSV/JSON Loader -->
+<section style="max-width:900px;margin:40px auto;">
+<h2 style="color:#003d99;">Shift Schedule Viewer</h2>
+<div style="background:white;padding:20px;border-radius:8px;box-shadow:0 0 8px rgba(0,0,0,0.15);">
+<p>Upload a schedule file (CSV or JSON):</p>
+<input type="file" id="scheduleFile" accept=".csv,.json" />
+<div id="scheduleTable" style="overflow-x:auto;margin-top:12px;"></div>
+</div>
+</section>
+
+<script>
+// Helper: parse CSV line respecting quoted fields
+function parseCsvLine(line){
+  const res = []; let cur=''; let inQuotes=false;
+  for(let i=0;i<line.length;i++){
+    const ch = line[i];
+    if(ch === '"'){
+      if(inQuotes && line[i+1] === '"'){ cur += '"'; i++; continue; }
+      inQuotes = !inQuotes; continue;
+    }
+    if(ch === ',' && !inQuotes){ res.push(cur); cur=''; continue; }
+    cur += ch;
+  }
+  res.push(cur);
+  return res;
+}
+
+function buildTableFromRows(rows){
+  if(!rows || !rows.length) { document.getElementById('scheduleTable').innerHTML = '<em>No data found.</em>'; return; }
+  const headers = Object.keys(rows[0]);
+
+  // VALIDATION RULES
+  const requiredFields = ['Date','Unit','Crew'];
+  for(const field of requiredFields){ if(!headers.includes(field)){ alert(`Missing required column: ${field}`); return; } }
+
+  // AUTO-SORT BY DATE (if Date exists)
+  rows.sort((a,b)=> new Date(a.Date) - new Date(b.Date));
+
+  // COLOR-CODE SHIFTS BY A/B/C
+  function getShiftColor(shift){ if(!shift) return ''; shift = shift.toUpperCase(); if(shift.includes('A')) return 'background:#d4e8ff;'; if(shift.includes('B')) return 'background:#e8ffd4;'; if(shift.includes('C')) return 'background:#ffe8d4;'; return ''; }
+  // HIGHLIGHT UNDERSTAFFED CREW
+  function isUnderstaffed(crew){ if(!crew) return false; const members = crew.split(',').filter(x=>x.trim().length>0); return members.length < 2; }
+
+  let html = '<table style="width:100%;border-collapse:collapse;">';
+  html += '<tr>' + headers.map(h => `<th style="border:1px solid #99b8ff;background:#c7daff;padding:6px;">${h}</th>`).join('') + '</tr>';
+
+  rows.forEach(r => {
+    const shiftStyle = getShiftColor(r.Shift || r.shift || '');
+    const understaffed = isUnderstaffed(r.Crew || r.crew) ? 'background:#ffd4d4;' : '';
+    html += `<tr style="${shiftStyle}${understaffed}">`;
+    headers.forEach(h => {
+      const cell = r[h] || r[h.trim()] || '';
+      html += `<td style="border:1px solid #99b8ff;padding:6px;">${cell}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</table>';
+  document.getElementById('scheduleTable').innerHTML = html;
+}
+
+document.getElementById('scheduleFile').addEventListener('change', function(){
+  const file = this.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const text = e.target.result || '';
+    let rows = [];
+    let headers = [];
+
+    // Detect JSON
+    if(file.name.toLowerCase().endsWith('.json')){
+      try{ const json = JSON.parse(text); if(Array.isArray(json) && json.length) { rows = json; headers = Object.keys(json[0]); } else { alert('JSON must be an array of objects'); return; } }
+      catch(err){ alert('Invalid JSON file'); return; }
+    } else {
+      // Parse CSV using robust line splitting
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length>0);
+      if(lines.length < 2){ alert('CSV requires header + at least one data row'); return; }
+      headers = parseCsvLine(lines[0]).map(h => h.trim());
+      rows = lines.slice(1).map(line => {
+        const vals = parseCsvLine(line);
+        const obj = {};
+        headers.forEach((h,i)=> obj[h] = vals[i] !== undefined ? vals[i].trim() : '');
+        return obj;
+      });
+    }
+
+    // Auto-format crew assignments: if Crew exists and has simple comma list, prefix with FF for names that look like last names only
+    rows = rows.map(r => {
+      const crewKey = Object.keys(r).find(k => k.toLowerCase() === 'crew');
+      if(crewKey && r[crewKey]){
+        const parts = r[crewKey].split(',').map(p=>p.trim()).filter(Boolean);
+        const needPrefix = parts.some(p => !/\b(Medic|FF|EMT|Paramedic)\b/i.test(p));
+        if(needPrefix){ r[crewKey] = parts.map(p => (/\s/.test(p) ? p : ('FF ' + p))).join(', '); }
+      }
+      return r;
+    });
+
+    buildTableFromRows(rows);
+  };
+  reader.readAsText(file);
+});
+</script>
+
+<!-- Footer -->
+<footer style="text-align:center;margin-top:40px;padding:20px;background:#d9e7ff;color:#003d99;font-weight:bold;border-radius:8px;">
+Saint Palms Fire & EMS • Employee Portal • © 2025
+</footer>
+
+</body>
+</html>
