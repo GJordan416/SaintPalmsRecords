@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Saint Palms Fire & EMS – Apparatus Check System</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#e6f0ff; margin:0; padding:20px; }
+  h1, h2 { color:#003d99; text-align:center; }
+  table { width:100%; border-collapse:collapse; background:white; margin:20px 0; box-shadow:0 0 8px rgba(0,0,0,0.15); }
+  th, td { border:1px solid #99b8ff; padding:6px; font-size:14px; }
+  th { background:#c7daff; color:#002b80; font-weight:bold; }
+  select { padding:6px; font-size:14px; }
+  .status-ok { background:#c8f7c5 !important; }
+  .status-warn { background:#fff3b0 !important; }
+  .status-bad { background:#f7c5c5 !important; }
+  .btn { padding:8px 14px; background:#005ce6; color:white; border:none; cursor:pointer; border-radius:4px; font-weight:bold; }
+  .btn:hover { background:#0047b3; }
+</style>
+<script>
+// Auto-fill today's date
+window.onload = () => {
+  document.querySelectorAll('.dateField').forEach(d => d.innerText = new Date().toLocaleDateString());
+};
+
+// Status color coding
+function applyStatus(cell) {
+  const value = cell.innerText.toLowerCase();
+  cell.classList.remove('status-ok','status-warn','status-bad');
+  if (value.includes('ok')) cell.classList.add('status-ok');
+  else if (value.includes('missing') || value.includes('low')) cell.classList.add('status-warn');
+  else if (value.includes('broken') || value.includes('fail')) cell.classList.add('status-bad');
+}
+
+// Observe status columns
+function monitorStatus() {
+  document.querySelectorAll('.statusCell').forEach(cell => {
+    cell.addEventListener('input', () => applyStatus(cell));
+  });
+}
+setTimeout(monitorStatus, 500);
+
+// Webhook submission
+const WEBHOOK_URL = "YOUR_WEBHOOK_URL";
+async function sendToDiscord(unitType) {
+  const data = document.getElementById(unitType).innerText;
+  try {
+    await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: `**${unitType} Check Submitted**
+
+` + data })
+    });
+    alert("Submitted to Discord.");
+  } catch (e) { alert("Error sending WebHook"); }
+}
+</script>
+</head>
+<body>
+<h1>Saint Palms Fire & EMS – Apparatus Daily Check System</h1>
+<p style="text-align:center;">Auto-date, unit selector (R14/R15), color-coded statuses, signatures, and Discord WebHook included.</p>
+
+<h2>Unit Selection</h2>
+<select id="unitSelect">
+  <option value="R14">Rescue 14</option>
+  <option value="R15">Rescue 15</option>
+</select>
+
+<!-- ENGINE VERSION -->
+<h2>Apparatus Type</h2>
+<select id="apparatusType" onchange="switchApparatus()">
+  <option value="Engine">Engine</option>
+  <option value="Rescue">Rescue</option>
+  <option value="Ambulance">Ambulance</option>
+</select>
+
+<h2>Engine Check Sheet</h2>
+<div id="Engine" contenteditable="true">
+<p><strong>Date:</strong> <span class="dateField"></span></p>
+<table>
+<thead>
+<tr>
+  <th>Item</th><th>Status</th><th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>Lights & Sirens</td><td class="statusCell"></td><td></td></tr>
+<tr><td>Pump Panel</td><td class="statusCell"></td><td></td></tr>
+<tr><td>Water Level</td><td class="statusCell"></td><td></td></tr>
+<tr><td>Tools / Hose</td><td class="statusCell"></td><td></td></tr>
+</tbody>
+</table>
+<label class="block font-semibold">Signature:</label>
+<input type="text" class="signatureInput" placeholder="Type name here" style="width:300px; padding:6px; font-size:14px;">
+<button class="btn" onclick="sendToDiscord('Engine')">Submit to Discord</button>
+</div>
+
+<!-- RESCUE VERSION -->
+<h2>Rescue Check Sheet</h2>
+<div id="Rescue" contenteditable="true">
+<p><strong>Date:</strong> <span class="dateField"></span></p>
+<table>
+<thead>
+<tr>
+  <th>Item</th><th>Status</th><th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>Medical Bag</td><td class="statusCell"></td><td></td></tr>
+<tr><td>Oxygen</td><td class="statusCell"></td><td></td></tr>
+<tr><td>Monitor</td><td class="statusCell"></td><td></td></tr>
+<tr><td>Extrication Tools</td><td class="statusCell"></td><td></td></tr>
+</tbody>
+</table>
+<label class="block font-semibold">Signature:</label>
+<input type="text" class="signatureInput" placeholder="Type name here" style="width:300px; padding:6px; font-size:14px;">
+<button class="btn" onclick="sendToDiscord('Rescue')">Submit to Discord</button>
+</div>
+
+<!-- AMBULANCE VERSION -->
+<h2>Ambulance Check Sheet</h2>
+<div id="Ambulance" contenteditable="true">
+<p><strong>Date:</strong> <span class="dateField"></span></p>
+<table>
+<thead>
+<tr>
+  <th>Item</th><th>Status</th><th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>Airway Kit</td><td class="statusCell"></td><td></td></tr>
+<tr><td>Cardiac Monitor</td><td class="statusCell"></td><td></td></tr>
+<tr><td>Medication Bag</td><td class="statusCell"></td><td></td></tr>
+<tr><td>Stretcher</td><td class="statusCell"></td><td></td></tr>
+</tbody>
+</table>
+<label class="block font-semibold">Signature:</label>
+<input type="text" class="signatureInput" placeholder="Type name here" style="width:300px; padding:6px; font-size:14px;">
+<button class="btn" onclick="sendToDiscord('Ambulance')">Submit to Discord</button>
+</div>
+
+<script>
+function switchApparatus(){
+  let val=document.getElementById('apparatusType').value;
+  ['Engine','Rescue','Ambulance'].forEach(id=>{
+    document.getElementById(id).style.display = (id===val?'block':'none');
+  });
+}
+// initialize default
+switchApparatus();
+
+// Signature clearing
+window.addEventListener('load',()=>{
+  document.querySelectorAll('.clearSig').forEach((btn,i)=>{
+    btn.addEventListener('click',()=>{
+      const canvas=document.querySelectorAll('.sigPad')[i];
+      const ctx=canvas.getContext('2d');
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    });
+  });
+});
+</script>
+</body>
+</html>
