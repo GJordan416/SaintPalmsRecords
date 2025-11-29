@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Saint Palms Fire & EMS – EMR / PCR System</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#e6f0ff; margin:0; padding:20px; }
+  h1 { text-align:center; color:#003d99; }
+  table { width:100%; border-collapse:collapse; background:white; box-shadow:0 0 8px rgba(0,0,0,0.15); }
+  th, td { border:1px solid #99b8ff; padding:6px; font-size:14px; }
+  th { background:#c7daff; color:#002b80; font-weight:bold; }
+  textarea { width:100%; height:60px; }
+  .btn { padding:8px 14px; background:#005ce6; color:white; border:none; cursor:pointer; border-radius:4px; font-weight:bold; }
+  .btn:hover { background:#0047b3; }
+</style>
+</head>
+<body>
+<h1>Saint Palms Fire & EMS – EMR / PCR System</h1>
+<p>Spreadsheet‑style editing. When "Submit PCR" is clicked, the entry is sent to the configured Discord WebHook.</p>
+
+<!-- Webhook URL -->
+<script>
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1444345597900619776/bHetcPG7oXA7Ig7-gQatTmkjHq3cHsG_6Z97yPrKD_D51B_1pHOOz3G29hzLRV2H1cYG"; // Replace manually
+
+async function submitPCR() {
+  const row = document.querySelector('#pcrRow');
+  const cells = row.querySelectorAll('td');
+
+  const data = {
+    incidentNumber: cells[0].innerText.trim(),
+    unitsResponding: cells[1].innerText.trim(),
+    nature: cells[2].innerText.trim(),
+    actionsTaken: cells[3].innerText.trim(),
+    outcome: cells[4].innerText.trim(),
+    notes: cells[5].innerText.trim(),
+    timeInService: cells[6].innerText.trim(),
+
+    // Patient demographics
+    patientName: cells[7].innerText.trim(),
+    patientDOB: cells[8].innerText.trim(),
+    patientGender: cells[9].innerText.trim(),
+    patientAddress: cells[10].innerText.trim(),
+    patientMedicalHistory: cells[11].innerText.trim()
+  };
+
+  const content = {
+    username: "Saint Palms EMS – PCR",
+    embeds: [{
+      title: `PCR Submitted – Incident ${data.incidentNumber}`,
+      color: 15158332,
+      fields: [
+        { name: "Units Responding", value: data.unitsResponding || "N/A" },
+        { name: "Nature of Call", value: data.nature || "N/A" },
+        { name: "Actions Taken", value: data.actionsTaken || "N/A" },
+        { name: "Outcome", value: data.outcome || "N/A" },
+        { name: "Notes", value: data.notes || "N/A" },
+        { name: "Time in Service", value: data.timeInService || "N/A" },
+        { name: "Patient Name", value: data.patientName || "N/A" },
+        { name: "Patient DOB", value: data.patientDOB || "N/A" },
+        { name: "Gender", value: data.patientGender || "N/A" },
+        { name: "Address", value: data.patientAddress || "N/A" },
+        { name: "Medical History", value: data.patientMedicalHistory || "N/A" }
+      ]
+    }]
+  };
+
+  try {
+    await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(content)
+    });
+    alert("PCR Submitted to Discord successfully.");
+  } catch (err) {
+    alert("Error sending to Discord WebHook.");
+  }
+}
+</script>
+
+<table>
+  <thead>
+    <tr>
+      <th>Incident #</th>
+      <th>Units Responding</th>
+      <th>Nature of Call</th>
+      <th>Actions Taken</th>
+      <th>Outcome</th>
+      <th>Notes</th>
+      <th>Time in Service</th>
+      <th>Patient Name</th>
+      <th>Patient DOB</th>
+      <th>Gender</th>
+      <th>Address</th>
+      <th>Medical History</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id="pcrRow" contenteditable="true">
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+
+<br>
+<button class="btn" onclick="submitPCR()">Submit PCR</button>
+
+</body>
+</html>
